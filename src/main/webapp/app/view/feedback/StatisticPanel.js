@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -383,7 +383,8 @@ Ext.define('ARSnova.view.feedback.StatisticPanel', {
 		if (features.feedback && ARSnova.app.activeSpeakerUtility) {
 			ARSnova.app.activeSpeakerUtility.feedbackOverlay.setIconCls(iconCls);
 			ARSnova.app.activeSpeakerUtility.feedbackOverlay.setBadgeText(voteBadge);
-			ARSnova.app.activeSpeakerUtility.feedbackOverlay.setHidden(!voteCount || !ARSnova.app.projectorModeActive);
+			ARSnova.app.activeSpeakerUtility.hideFeedbackOverlay = !voteCount;
+			ARSnova.app.activeSpeakerUtility.checkOverlayVisibility();
 		}
 
 		if (ARSnova.app.feedbackModel.lock) {

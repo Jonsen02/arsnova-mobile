@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,7 +74,10 @@ Ext.define('ARSnova.view.feedbackQuestions.QuestionsMessagePanel', {
 		updateClockTask: {
 			name: 'renew the actual time at the titlebar',
 			run: function () {
-				ARSnova.app.mainTabPanel.tabPanel.feedbackQuestionsPanel.questionsPanel.updateTime();
+				var fQP = ARSnova.app.mainTabPanel.tabPanel.feedbackQuestionsPanel;
+				if (typeof fQP.questionsPanel.updateTime === 'function') {
+					fQP.questionsPanel.updateTime();
+				}
 			},
 			interval: 1000 // 1 second
 		}
@@ -174,8 +177,8 @@ Ext.define('ARSnova.view.feedbackQuestions.QuestionsMessagePanel', {
 				'<tpl else>',
 					'<div class="messageTitle unread">',
 				'</tpl>',
-					'<span class="messageSubject">{subject:htmlEncode}</span>',
 					'<span class="messageTimestamp">{[this.getFormattedTime(values.timestamp)]}</span>',
+					'<span class="messageSubject">{subject:htmlEncode}</span>',
 					'<span class="messageDeleteIcon"></span>',
 				'</div>',
 				'<div class="messageText">',

@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -176,20 +176,19 @@ Ext.define('ARSnova.view.FreetextDetailAnswer', {
 						}
 
 						self.sTP.items.items.pop(); // Remove this panel from view stack
-						self.sTP.animateActiveItem(
-							self.sTP.items.items[self.sTP.items.items.length - 1], // Switch back to top of view stack
-							{
-								type: 'slide',
-								direction: 'right',
-								duration: 700,
-								scope: this,
-								listeners: {
-									animationend: function () {
-										self.destroy();
-									}
+						var prevTabPanel = self.sTP.items.items[self.sTP.items.items.length - 1];
+						self.sTP.animateActiveItem(prevTabPanel, { // Switch back to top of view stack
+							type: 'slide',
+							direction: 'right',
+							duration: 700,
+							scope: this,
+							listeners: {
+								animationend: function () {
+									self.destroy();
+									prevTabPanel.getActiveItem().checkFreetextAnswersTask.taskRunTime = 0;
 								}
 							}
-						);
+						});
 					},
 					failure: function () {
 						console.log('server-side error: deletion of freetext answer failed');
@@ -213,7 +212,9 @@ Ext.define('ARSnova.view.FreetextDetailAnswer', {
 
 		this.on('painted', function () {
 			ARSnova.app.innerScrollPanel = this;
-			this.speakerUtilities.setProjectorMode(this, ARSnova.app.projectorModeActive);
+			if (ARSnova.app.userRole === ARSnova.app.USER_ROLE_SPEAKER) {
+				this.speakerUtilities.setProjectorMode(this, ARSnova.app.projectorModeActive);
+			}
 		});
 
 		this.on('activate', function () {

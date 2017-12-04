@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,6 +58,13 @@ Ext.define('ARSnova.model.Question', {
 			'offsetY',
 			'zoomLvl',
 			'image',
+			'fixedAnswer',
+			'strictMode',
+			'rating',
+			'correctAnswer',
+			'ignoreCaseSensitive',
+			'ignoreWhitespaces',
+			'ignorePunctuation',
 			'fcImage',
 			'gridOffsetX',
 			'gridOffsetY',
@@ -106,6 +113,7 @@ Ext.define('ARSnova.model.Question', {
 		countLectureQuestionAnswers: "arsnova/question/lecturer/lecture/answercount",
 		countPreparationQuestionAnswers: "arsnova/question/lecturer/preparation/answercount",
 		countQuestionsAndAnswers: "arsnova/question/unanswered-question-and-answer-count",
+		countFlashcards: "arsnova/question/lecturer/flashcard/count",
 		internalUpdate: "arsnova/question/internal/update"
 	},
 
@@ -113,6 +121,7 @@ Ext.define('ARSnova.model.Question', {
 	numUnansweredPreparationQuestions: 0,
 	numLectureQuestionAnswers: 0,
 	numPreparationQuestionAnswers: 0,
+	numFlashcards: 0,
 
 	constructor: function () {
 		this.callParent(arguments);
@@ -228,12 +237,19 @@ Ext.define('ARSnova.model.Question', {
 			this.fireEvent(this.events.internalUpdate);
 		}, this);
 
+		ARSnova.app.socket.on(ARSnova.app.socket.events.countFlashcards, function (count) {
+			this.numFlashcards = count;
+			this.fireEvent(this.events.countFlashcards, count);
+			this.fireEvent(this.events.internalUpdate);
+		}, this);
+
 		this.on(this.events.internalUpdate, function () {
 			this.fireEvent(this.events.countQuestionsAndAnswers, {
 				unansweredLectureQuestions: this.numUnanswerdLectureQuestions,
 				unansweredPreparationQuestions: this.numUnansweredPreparationQuestions,
 				lectureQuestionAnswers: this.numLectureQuestionAnswers,
-				preparationQuestionAnswers: this.numPreparationQuestionAnswers
+				preparationQuestionAnswers: this.numPreparationQuestionAnswers,
+				flashcardCount: this.numFlashcards
 			});
 		}, this);
 	},
@@ -313,8 +329,8 @@ Ext.define('ARSnova.model.Question', {
 		return this.getProxy().getLectureQuestions(sessionKeyword, callbacks, offset, limit, requestImageData);
 	},
 
-	getFlashcards: function (sessionKeyword, callbacks) {
-		return this.getProxy().getFlashcards(sessionKeyword, callbacks);
+	getFlashcards: function (sessionKeyword, callbacks, offset, limit, requestImageData) {
+		return this.getProxy().getFlashcards(sessionKeyword, callbacks, offset, limit, requestImageData);
 	},
 
 	getPreparationQuestions: function (sessionKeyword, callbacks, offset, limit, requestImageData) {
@@ -401,6 +417,10 @@ Ext.define('ARSnova.model.Question', {
 		return this.getProxy().getPreparationQuestionsForUser(sessionKeyword, callbacks);
 	},
 
+	getFlashcardsForUser: function (sessionKeyword, callbacks) {
+		return this.getProxy().getFlashcardsForUser(sessionKeyword, callbacks);
+	},
+
 	releasedByCourseId: function (courseId, callbacks) {
 		return this.getProxy().releasedByCourseId(courseId, callbacks);
 	},
@@ -415,6 +435,10 @@ Ext.define('ARSnova.model.Question', {
 
 	deleteAllPreparationAnswers: function (sessionKeyword, callbacks) {
 		return this.getProxy().delAllPreparationAnswers(sessionKeyword, callbacks);
+	},
+
+	deleteAllFlashcardViews: function (sessionKeyword, callbacks) {
+		return this.getProxy().delAllFlashcardViews(sessionKeyword, callbacks);
 	},
 
 	getSubjectPreparationSort: function (sessionKeyword, callbacks) {

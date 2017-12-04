@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,9 @@ Ext.define('ARSnova.WebSocket', {
 		countLectureQuestionAnswers: "arsnova/socket/question/lecturer/lecture/answercount",
 		countPreparationQuestionAnswers: "arsnova/socket/question/lecturer/preparation/answercount",
 		learningProgressOptions: "arsnova/socket/session/learningprogress/options",
-		learningProgressChange: "arsnova/socket/session/learningprogress/change"
+		learningProgressChange: "arsnova/socket/session/learningprogress/change",
+		countFlashcards: "arsnova/question/lecturer/flashcard/count",
+		flipFlashcards: "arsnova/session/flashcards/flip"
 	},
 
 	memoization: {},
@@ -62,7 +64,19 @@ Ext.define('ARSnova.WebSocket', {
 	socket: null,
 
 	connect: function () {
-		this.initSocket().then(Ext.bind(function (socketUrl) {
+		var promise;
+		var socketioPath;
+		if (ARSnova.app.globalConfig && ARSnova.app.globalConfig.socketioPath) {
+			socketioPath = ARSnova.app.globalConfig.socketioPath;
+			promise = new RSVP.Promise();
+			var portStr = window.location.port ? ':' + window.location.port : '';
+			promise.resolve(window.location.protocol + '//' + window.location.hostname + portStr);
+		} else {
+			socketioPath = "/socket.io";
+			promise = ARSnova.app.restProxy.getWebSocketUrl();
+		}
+
+		promise.then(Ext.bind(function (socketUrl) {
 			/* Upgrade from polling to WebSocket currently does not work
 			* reliably so manually set the transport by detecting browser
 			* support for WebSocket protocol */
@@ -71,7 +85,7 @@ Ext.define('ARSnova.WebSocket', {
 				/* Workaround: unfortunately some browsers pretend to support
 				* WS protocol although they do not */
 				try {
-					var wsTestUrl = socketUrl.replace(/^http/, "ws") + "/socket.io/1/";
+					var wsTestUrl = socketUrl.replace(/^http/, "ws") + socketioPath + "/";
 					var ws = new WebSocket(wsTestUrl);
 					ws.close(-1);
 				} catch (e) {
@@ -82,6 +96,7 @@ Ext.define('ARSnova.WebSocket', {
 			console.debug("Socket.IO transports", transports);
 
 			this.socket = io.connect(socketUrl, {
+				path: socketioPath,
 				reconnect: true,
 				secure: window.location.protocol === 'https:',
 				transports: transports
@@ -232,6 +247,16 @@ Ext.define('ARSnova.WebSocket', {
 				this.fireEvent(this.events.countPreparationQuestionAnswers, count);
 			}, this));
 
+			this.socket.on('countFlashcards', Ext.bind(function (count) {
+				console.debug("Socket.IO: countFlashcards", count);
+				this.fireEvent(this.events.countFlashcards, count);
+			}, this));
+
+			this.socket.on('flipFlashcards', Ext.bind(function (flip) {
+				console.debug("Socket.IO: flipFlashcards", flip);
+				this.fireEvent(this.events.flipFlashcards, flip);
+			}, this));
+
 			this.socket.on('learningProgressOptions', Ext.bind(function (options) {
 				console.debug("Socket.IO: learningProgressOptions", options);
 				this.fireEvent(this.events.learningProgressOptions, options);
@@ -247,12 +272,6 @@ Ext.define('ARSnova.WebSocket', {
 				this.fireEvent(this.events.learningProgressChange);
 			}, 500, this));
 		}, this));
-	},
-
-	initSocket: function () {
-		var socketUrl = window.location.protocol + '//' + window.location.hostname + ':10443';
-		var promise = ARSnova.app.restProxy.initWebSocket(socketUrl, new RSVP.Promise());
-		return promise;
 	},
 
 	setSession: function (sessionKey) {

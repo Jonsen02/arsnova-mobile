@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,8 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 			type: 'vbox',
 			pack: 'center'
 		},
-		controller: null
+		controller: null,
+		variant: 'lecture'
 	},
 
 	monitorOrientation: true,
@@ -49,9 +50,9 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 
 	questions: null,
 	newQuestionButton: null,
-
 	questionStore: null,
-	reader: new FileReader(),
+	questionLoadingIndex: null,
+	indexedQuestionsWithAnswers: [],
 
 	updateAnswerCount: {
 		name: 'refresh the number of answers inside the badges',
@@ -69,16 +70,6 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 		var screenWidth = (window.innerWidth > 0) ? window.innerWidth : screen.width;
 		var actionButtonCls = screenWidth < 410 ? 'smallerActionButton' : 'actionButton';
 		this.screenWidth = screenWidth;
-
-		this.reader.onload = function (event) {
-			ARSnova.app.getController('QuestionImport').importCsvFile(self.reader.result);
-			var field = self.loadFilePanel.query('filefield')[0];
-			// field.setValue currently has no effect - Sencha bug?
-			field.setValue(null);
-			// Workaround: Directly reset value on DOM element
-			field.element.query('input')[0].value = null;
-			field.enable();
-		};
 
 		this.questionStore = Ext.create('Ext.data.JsonStore', {
 			model: 'ARSnova.model.Question',
@@ -209,7 +200,7 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 		});
 
 		this.questionsImport = Ext.create('ARSnova.view.MatrixButton', {
-			text: Messages.QUESTIONS_CSV_IMPORT_BUTTON,
+			text: Messages.QUESTIONS_IMPORT_BUTTON,
 			buttonConfig: 'icon',
 			imageCls: 'icon-cloud-upload',
 			cls: 'actionButton',
@@ -223,49 +214,126 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 			centered: true
 		});
 
-		this.loadFilePanel = Ext.create('Ext.Panel', {
-			modal: true,
-			centered: true,
-			ui: 'light',
-			items: [
-				{
-					xtype: 'toolbar',
-					docked: 'top',
-					title: Messages.QUESTIONS_CSV_IMPORT_MSBOX_TITLE,
-					ui: 'light',
-					items: [{
-							xtype: 'spacer'
-						}, {
-							xtype: 'button',
-							ui: 'plain',
-							iconCls: 'delete',
-							iconMask: true,
-							text: '',
-							action: 'hideModal'
+		this.uploadField = Ext.create('Ext.ux.Fileup', {
+			xtype: 'fileupload',
+			autoUpload: true,
+			loadAsDataUrl: true,
+			cls: 'importFileField',
+			flex: 0,
+			listeners: {
+				loadsuccess: function (data) {
+					var error = false;
+					if (!Ext.os.is.iOS) {
+						// remove prefix and decode
+						var str = data.substring(data.indexOf("base64,") + 7);
+						data = atob(str);
+						try {
+							data = decodeURIComponent(window.escape(data));
+						} catch (e) {
+							error = true;
+							console.warn("Invalid charset: UTF-8 expected");
 						}
-					]
-				},
-				{
-					xtype: 'filefield',
-					accept: 'text/csv',
-					listeners: {
-						change: function (element, newValue, oldValue) {
-							// Workaround: The change event is triggered twice in Chrome
-							if (element.isDisabled()) {
-								return;
-							}
-							element.disable();
 
-							var path = element.getValue();
-							var fileType = path.substring(path.lastIndexOf('.'));
-							if (fileType === '.csv') {
-								var file = element.bodyElement.dom.firstElementChild.firstElementChild.files[0];
-								self.reader.readAsText(file);
-							}
+						if (self.getVariant() === 'flashcard') {
+							self.loadFilePanel.hide();
+							ARSnova.app.getController('FlashcardImport')
+								.importFile(data, this.importCsv, this.importFlashcards);
+						} else {
+							ARSnova.app.getController('QuestionImport').importCsvFile(data);
 						}
+
+						this.importCsv = false;
+						this.importFlashcards = false;
 					}
-				}
-			]
+
+					if (error) {
+						Ext.Msg.alert(Messages.NOTIFICATION, Messages.QUESTIONS_IMPORT_INVALID_CHARSET);
+					}
+				},
+				loadfailure: function (message) {}
+			}
+		});
+
+		this.loadFilePanel = Ext.create('Ext.MessageBox', {
+			hideOnMaskTap: true,
+			cls: 'importExportFilePanel',
+			title: Messages.QUESTIONS_IMPORT_MSBOX_TITLE,
+			items: [{
+				xtype: 'button',
+				iconCls: 'icon-close',
+				cls: 'closeButton',
+				handler: function () { this.getParent().hide(); }
+			}, {
+				xtype: 'container',
+				layout: 'hbox',
+				defaults: {
+					xtype: 'button',
+					cls: 'overlayButton',
+					ui: 'action',
+					scope: this,
+					flex: 1
+				},
+				items: [this.uploadField, {
+					text: Messages.CSV_FILE,
+					handler: function () {
+						this.uploadField.importCsv = true;
+						this.uploadField.fileElement.dom.accept = 'text/csv';
+						this.uploadField.fileElement.dom.click();
+					}
+				}, {
+					text: Messages.ARSNOVA_CARDS,
+					itemId: 'flashcardImportButton',
+					handler: function () {
+						this.uploadField.importFlashcards = true;
+						this.uploadField.fileElement.dom.accept = 'application/json';
+						this.uploadField.fileElement.dom.click();
+					}
+				}]
+			}]
+		});
+
+		this.exportFilePanel = Ext.create('Ext.MessageBox', {
+			hideOnMaskTap: true,
+			cls: 'importExportFilePanel',
+			title: Messages.QUESTIONS_EXPORT_MSBOX_TITLE,
+			items: [{
+				xtype: 'button',
+				iconCls: 'icon-close',
+				cls: 'closeButton',
+				handler: function () { this.getParent().hide(); }
+			}, {
+				html: Messages.QUESTIONS_EXPORT_MSBOX_INFO,
+				cls: 'x-msgbox-text'
+			}, {
+				xtype: 'container',
+				layout: 'hbox',
+				defaults: {
+					xtype: 'button',
+					ui: 'action',
+					scope: this,
+					flex: 1
+				},
+				items: [{
+					text: Messages.CSV_FILE,
+					handler: function () {
+						if (this.getVariant() === 'flashcard') {
+							ARSnova.app.getController('FlashcardExport')
+								.exportFlashcards(this.getController(), 'csv');
+						} else {
+							ARSnova.app.getController('QuestionExport')
+								.exportQuestions(this.getController());
+						}
+						this.exportFilePanel.hide();
+					}
+				}, {
+					text: Messages.ARSNOVA_CARDS,
+					handler: function () {
+						ARSnova.app.getController('FlashcardExport')
+							.exportFlashcards(this.getController(), 'json');
+						this.exportFilePanel.hide();
+					}
+				}]
+			}]
 		});
 
 		this.actionButtonPanel = Ext.create('Ext.Panel', {
@@ -318,10 +386,17 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 			cls: actionButtonCls,
 			scope: this,
 			handler: function () {
-				var me = this;
-				Ext.Msg.confirm(Messages.DELETE_ALL_ANSWERS_REQUEST, Messages.ALL_QUESTIONS_REMAIN, function (answer) {
+				var title = Messages.DELETE_ALL_ANSWERS_REQUEST;
+				var message = Messages.ALL_QUESTIONS_REMAIN;
+
+				if (this.getVariant() === 'flashcard') {
+					title = Messages.DELETE_ALL_VIEWS_REQUEST;
+					message = Messages.ALL_FLASHCARDS_REMAIN;
+				}
+
+				Ext.Msg.confirm(title, message, function (answer) {
 					if (answer === 'yes') {
-						me.getController().deleteAllQuestionsAnswers({
+						this.getController().deleteAllQuestionsAnswers({
 							success: Ext.bind(this.handleDeleteAnswers, this),
 							failure: Ext.emptyFn
 						});
@@ -339,8 +414,15 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 			scope: this,
 			handler: function () {
 				var msg = Messages.ARE_YOU_SURE;
-				msg += "<br>" + Messages.DELETE_ALL_ANSWERS_INFO;
-				Ext.Msg.confirm(Messages.DELETE_QUESTIONS_TITLE, msg, function (answer) {
+				var title = Messages.DELETE_QUESTIONS_TITLE;
+
+				if (this.getVariant() === 'flashcard') {
+					title = Messages.DELETE_FLASHCARDS_TITLE;
+				} else {
+					msg += "<br>" + Messages.DELETE_ALL_ANSWERS_INFO;
+				}
+
+				Ext.Msg.confirm(title, msg, function (answer) {
 					if (answer === 'yes') {
 						this.getController().destroyAll(sessionStorage.getItem("keyword"), {
 							success: Ext.bind(this.onActivate, this),
@@ -356,23 +438,14 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 		this.exportCsvQuestionsButton = Ext.create('ARSnova.view.MatrixButton', {
 			hidden: true,
 			buttonConfig: 'icon',
-			text: Messages.QUESTIONS_CSV_EXPORT_BUTTON,
+			text: Messages.QUESTIONS_EXPORT_BUTTON,
 			imageCls: 'icon-cloud-download',
 			cls: 'actionButton',
 			scope: this,
 			handler: function () {
-				var msg = Messages.QUESTIONS_CSV_EXPORT_MSBOX_INFO;
-
-				Ext.Msg.confirm(Messages.QUESTIONS_CSV_EXPORT_MSBOX_TITLE, msg, function (answer) {
-					if (answer === 'yes') {
-						this.getController().getQuestions(sessionStorage.getItem('keyword'), {
-							success: function (response) {
-								var questions = Ext.decode(response.responseText);
-								ARSnova.app.getController('QuestionExport').parseJsonToCsv(questions);
-							}
-						});
-					}
-				}, this);
+				var msg = Messages.QUESTIONS_EXPORT_MSBOX_INFO;
+				Ext.Viewport.add(this.exportFilePanel);
+				this.exportFilePanel.show();
 			}
 		});
 
@@ -425,10 +498,16 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 			 */
 			return;
 		}
-		ARSnova.app.taskManager.start(this.updateAnswerCount);
+		this.flashcardImportButton = Ext.ComponentQuery.query('#flashcardImportButton')[0];
 		this.applyUIChanges();
 		this.questionStore.removeAll();
-		this.getQuestions();
+		this.getQuestions().then(Ext.bind(function () {
+			if (this.getVariant() !== 'flashcard') {
+				this.questionLoadingIndex = null;
+				this.indexedQuestionsWithAnswers = [];
+				ARSnova.app.taskManager.start(this.updateAnswerCount);
+			}
+		}, this));
 	},
 
 	onDeactivate: function () {
@@ -443,43 +522,55 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 		var features = ARSnova.app.getController('Feature').getActiveFeatures();
 		var hideLoadIndicator = ARSnova.app.showLoadIndicator(Messages.LOAD_MASK, 1000);
 
+		var promise = new RSVP.Promise();
 		this.getController().getQuestions(sessionStorage.getItem('keyword'), {
 			success: Ext.bind(function (response, totalRange) {
 				var questions = Ext.decode(response.responseText);
+				var showcaseButtonText = Messages.SHOWCASE_MODE_PLURAL;
 				for (var i = 0; i < questions.length; i++) {
 					questions[i].sequenceNo = i;
 				}
 				this.questionStore.add(questions);
 				this.caption.show();
 				this.caption.explainStatus(questions);
-				this.handleAnswerCount();
+
+				if (this.getVariant() !== 'flashcard') {
+					this.handleAnswerCount();
+				}
 
 				if (questions.length === 1) {
-					this.showcaseActionButton.setButtonText(
-						features.flashcard ? Messages.SHOWCASE_FLASHCARD : Messages.SHOWCASE_MODE);
 					this.questionStatusButton.setSingleQuestionMode();
 					this.voteStatusButton.setSingleQuestionMode();
+					showcaseButtonText = this.getVariant() === 'flashcard' ?
+						Messages.SHOWCASE_FLASHCARD :
+						Messages.SHOWCASE_MODE;
 				} else {
-					this.showcaseActionButton.setButtonText(
-						features.flashcard ? Messages.SHOWCASE_FLASHCARDS : Messages.SHOWCASE_MODE_PLURAL);
 					this.questionStatusButton.setMultiQuestionMode();
 					this.voteStatusButton.setMultiQuestionMode();
+					showcaseButtonText = this.getVariant() === 'flashcard' ?
+						Messages.SHOWCASE_FLASHCARDS :
+						Messages.SHOWCASE_MODE_PLURAL;
 				}
 
-				if (features.slides) {
-					this.showcaseActionButton.setButtonText(Messages.SHOWCASE_KEYNOTE);
+				if (this.getVariant() !== 'flashcard') {
+					this.voteStatusButton.checkInitialStatus();
+					this.questionStatusButton.checkInitialStatus();
+					this.questionStatusButton.show();
+					this.voteStatusButton.show();
+
+					if (features.slides) {
+						showcaseButtonText = Messages.SHOWCASE_KEYNOTE;
+					}
 				}
 
+				this.showcaseActionButton.setButtonText(showcaseButtonText);
 				this.questionList.updatePagination(questions.length, totalRange);
 				callback.apply();
 
 				this.showcaseActionButton.show();
 				this.questionListContainer.show();
 				this.questionList.show();
-				this.questionStatusButton.checkInitialStatus();
-				this.voteStatusButton.checkInitialStatus();
-				this.questionStatusButton.show();
-				this.voteStatusButton.show();
+
 				// this.sortQuestionsButton.show();
 				this.deleteQuestionsButton.show();
 				hideLoadIndicator.apply();
@@ -487,6 +578,7 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 				if (this.screenWidth > 550) {
 					this.exportCsvQuestionsButton.show();
 				}
+				promise.resolve();
 			}, this),
 			empty: Ext.bind(function () {
 				this.showcaseActionButton.hide();
@@ -499,12 +591,16 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 				this.deleteQuestionsButton.hide();
 				this.exportCsvQuestionsButton.hide();
 				hideLoadIndicator.apply();
+				promise.resolve();
 			}, this),
 			failure: function (response) {
 				console.log('server-side error questionModel.getSkillQuestions');
 				hideLoadIndicator.apply();
+				promise.reject();
 			}
 		}, this.questionList.getStartIndex(), this.questionList.getEndIndex());
+
+		return promise;
 	},
 
 	newQuestionHandler: function () {
@@ -552,7 +648,7 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 		});
 	},
 
-	getQuestionAnswers: function () {
+	getQuestionAnswers: function (index) {
 		var me = this;
 		var getAnswerCount = function (questionRecord, promise) {
 			if (questionRecord.get('questionType') === 'freetext') {
@@ -589,11 +685,18 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 		};
 
 		var promises = [];
-		this.questionStore.each(function (questionRecord) {
+		if (index == null) {
+			this.questionStore.each(function (questionRecord) {
+				var promise = new RSVP.Promise();
+				getAnswerCount(questionRecord, promise);
+				promises.push(promise);
+			}, this);
+		} else {
+			var questionRecord = this.questionStore.getAt(index);
 			var promise = new RSVP.Promise();
 			getAnswerCount(questionRecord, promise);
 			promises.push(promise);
-		}, this);
+		}
 
 		return promises;
 	},
@@ -603,22 +706,40 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 	},
 
 	handleDeleteAnswers: function () {
-		this.handleAnswerCount();
-
 		this.questionStore.each(function (question) {
 			question.set("votingDisabled", false);
 			question.raw.votingDisabled = false;
 		});
+		this.questionLoadingIndex = null;
+		this.indexedQuestionsWithAnswers = [];
+		this.handleAnswerCount();
 	},
 
 	handleAnswerCount: function () {
-		RSVP.all(this.getQuestionAnswers())
-		.then(Ext.bind(this.caption.explainBadges, this.caption))
+		console.log("handleAC", "index", this.questionLoadingIndex);
+		RSVP.all(this.getQuestionAnswers(this.questionLoadingIndex))
 		.then(Ext.bind(function (badgeInfos) {
-			var hasAnswers = badgeInfos.filter(function (item) {
-				return item.hasAnswers;
+			console.log("handleAC", "then", badgeInfos);
+			badgeInfos.forEach(function (item) {
+				console.log("handleAC", "bI forEach", item, "index", this.questionLoadingIndex);
+				var value = item.hasAnswers ? item : null;
+				if (this.questionLoadingIndex) {
+					this.indexedQuestionsWithAnswers[this.questionLoadingIndex] = value;
+				} else {
+					this.indexedQuestionsWithAnswers.push(value);
+				}
 			}, this);
-			this.deleteAnswersButton.setHidden(hasAnswers.length === 0);
+			var allQuestionsWithAnswers = this.indexedQuestionsWithAnswers.filter(function (item) {
+				console.log("handleAC", "allQuestionsWithAnswers filter", item);
+				return !!item;
+			});
+			console.log("handleAC", "allQuestionsWithAnswers", allQuestionsWithAnswers);
+			this.deleteAnswersButton.setHidden(allQuestionsWithAnswers.length === 0);
+			this.caption.explainBadges(allQuestionsWithAnswers);
+
+			this.questionLoadingIndex =
+				(this.questionLoadingIndex == null || this.questionLoadingIndex >= this.questionStore.getCount() - 1) ?
+					0 : this.questionLoadingIndex + 1;
 		}, this));
 	},
 
@@ -629,51 +750,86 @@ Ext.define('ARSnova.view.speaker.AudienceQuestionPanel', {
 	applyUIChanges: function () {
 		var features = ARSnova.app.getController('Feature').getActiveFeatures();
 		var lectureButtonText = Messages.NEW_QUESTION;
+		var questionListText = this.questionListContainer.config.title;
+		var deleteAnswersText = this.deleteAnswersButton.config.text;
+		var deleteQuestionsText = this.deleteQuestionsButton.config.text;
+		var exportText = this.exportCsvQuestionsButton.config.text;
+		var importText = this.questionsImport.config.text;
+		var toolbarTitle = this.toolbar.config.title;
+		var captionTranslation = this.caption.config.translation;
+		var badgeTranslation = this.caption.config.badgeTranslation;
 
 		if (features.total || features.slides) {
-			this.toolbar.setTitle(Messages.SLIDE_LONG);
-			this.questionListContainer.setTitle(Messages.CONTENT_MANAGEMENT);
-			this.deleteAnswersButton.setButtonText(Messages.DELETE_COMMENTS);
-			this.deleteQuestionsButton.setButtonText(Messages.DELETE_CONTENT);
-			this.exportCsvQuestionsButton.setButtonText(Messages.EXPORT_CONTENT);
-			this.questionsImport.setButtonText(Messages.IMPORT_CONTENT);
+			toolbarTitle = Messages.SLIDE_LONG;
+			exportText = Messages.EXPORT_CONTENT;
+			importText = Messages.IMPORT_CONTENT;
+			questionListText = Messages.CONTENT_MANAGEMENT;
+			deleteAnswersText = Messages.DELETE_COMMENTS;
+			deleteQuestionsText = Messages.DELETE_CONTENT;
+			lectureButtonText = Messages.NEW_CONTENT;
+
 			this.questionStatusButton.setKeynoteWording();
+			this.newQuestionButton.element.down('.iconBtnImg').replaceCls('icon-question', 'icon-pencil');
 			this.voteStatusButton.setKeynoteWording();
 
-			lectureButtonText = Messages.NEW_CONTENT;
-			this.newQuestionButton.element.down('.iconBtnImg').replaceCls('icon-question', 'icon-pencil');
-
-			this.caption.setTranslation({
+			captionTranslation = {
 				active: Messages.OPEN_CONTENT,
 				inactive: Messages.CLOSED_CONTENT,
 				disabledVote: Messages.CLOSED_COMMENTATION
-			});
+			};
 
-			this.caption.setBadgeTranslation({
+			badgeTranslation = {
 				feedback: Messages.QUESTIONS_FROM_STUDENTS,
 				unredFeedback: Messages.UNREAD_QUESTIONS_FROM_STUDENTS,
 				questions: Messages.QUESTIONS,
 				answers: Messages.COMMENTS
-			});
+			};
 		} else {
-			this.toolbar.setTitle(this.toolbar.config.title);
-			this.questionListContainer.setTitle(this.questionListContainer.config.title);
-			this.deleteAnswersButton.setButtonText(this.deleteAnswersButton.config.text);
-			this.deleteQuestionsButton.setButtonText(this.deleteQuestionsButton.config.text);
-			this.exportCsvQuestionsButton.setButtonText(this.exportCsvQuestionsButton.config.text);
-			this.questionsImport.setButtonText(this.questionsImport.config.text);
 			this.questionStatusButton.setDefaultWording();
-			this.voteStatusButton.setDefaultWording();
-
-			this.caption.setTranslation(this.caption.config.translation);
-			this.caption.setBadgeTranslation(this.caption.config.badgeTranslation);
 			this.newQuestionButton.element.down('.iconBtnImg').replaceCls('icon-pencil', 'icon-question');
+			this.voteStatusButton.setDefaultWording();
 		}
 
-		if (features.flashcard) {
+		if (this.getVariant() === 'flashcard') {
 			lectureButtonText = Messages.NEW_FLASHCARD;
+			toolbarTitle = Messages.FLASHCARDS;
+			exportText = Messages.EXPORT_FLASHCARDS;
+			importText = Messages.IMPORT_FLASHCARDS;
+			questionListText = Messages.CONTENT_MANAGEMENT;
+			deleteAnswersText = Messages.DELETE_FLASHCARD_VIEWS;
+			deleteQuestionsText = Messages.DELETE_ALL_FLASHCARDS;
+			this.flashcardImportButton.show();
+			this.voteStatusButton.hide();
+
+			this.questionStatusButton.setFlashcardsWording();
+			this.newQuestionButton.element.down('.iconBtnImg').replaceCls('icon-question', 'icon-pencil');
+			this.actionButtonPanel.remove(this.questionStatusButton, false);
+
+			captionTranslation = {
+				active: Messages.FLASHCARDS,
+				inactive: "", disabledVote: ""
+			};
+
+			badgeTranslation = {
+				feedback: "", unredFeedback: "", questions: "",
+				answers: Messages.FLASHCARD_VIEWS
+			};
+		} else {
+			this.flashcardImportButton.hide();
+			this.actionButtonPanel.insert(0, this.questionStatusButton);
+			this.voteStatusButton.show();
 		}
 
+		this.toolbar.setTitle(toolbarTitle);
+		this.questionListContainer.setTitle(questionListText);
 		this.newQuestionButton.setButtonText(lectureButtonText);
+		this.deleteAnswersButton.setButtonText(deleteAnswersText);
+		this.deleteQuestionsButton.setButtonText(deleteQuestionsText);
+		this.exportCsvQuestionsButton.setButtonText(exportText);
+		this.questionsImport.setButtonText(importText);
+		this.caption.setTranslation(captionTranslation);
+		this.caption.setBadgeTranslation(badgeTranslation);
+		this.questionStatusButton.setHidden(this.getVariant() === 'flashcard');
+		ARSnova.app.mainTabPanel.tabPanel.speakerTabPanel.showcaseQuestionPanel.setMode(this.getVariant());
 	}
 });

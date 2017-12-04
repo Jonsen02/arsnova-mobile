@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -143,7 +143,11 @@ Ext.define('ARSnova.view.speaker.form.HintForSolutionForm', {
 	previewHandler: function () {
 		var questionPreview = Ext.create('ARSnova.view.QuestionPreviewBox', {
 			equalPanelSize: true,
-			toolbarTitle: Messages.QUESTION_PREVIEW_BUTTON_TITLE
+			toolbarTitle: Messages.QUESTION_PREVIEW_BUTTON_TITLE,
+			formatting: {
+				mdInTitle: true,
+				mjInTitle: true
+			}
 		});
 		questionPreview.showPreview(this.getHintValue(), this.getSolutionValue());
 	},

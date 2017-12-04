@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,10 +88,10 @@ Ext.define('ARSnova.view.FreetextAnswerPanel', {
 
 				ARSnova.app.innerScrollPanel = false;
 				ARSnova.app.taskManager.stop(me.checkFreetextAnswersTask);
-				me.speakerUtilities.initializeZoomComponents();
 
 				if (ARSnova.app.userRole === ARSnova.app.USER_ROLE_SPEAKER) {
 					object = speakerTabPanel.statisticTabPanel.roundManagementPanel.editButtons.questionObj;
+					me.speakerUtilities.initializeZoomComponents();
 
 					switch (speakerTabPanel.getActiveItem()) {
 						case speakerTabPanel.showcaseQuestionPanel:
@@ -120,11 +120,21 @@ Ext.define('ARSnova.view.FreetextAnswerPanel', {
 			}
 		});
 
+		this.exportButton = Ext.create('Ext.Button', {
+			xtype: 'button',
+			text: Messages.EXPORT_BUTTON_LABEL,
+			align: 'right',
+			handler: function () {
+				ARSnova.app.getController('QuestionExport').downloadQuestionAnswers(self.questionObj, self.freetextAnswerStore);
+			},
+			hidden: (ARSnova.app.userRole === ARSnova.app.USER_ROLE_STUDENT)
+		});
+
 		this.toolbar = Ext.create('Ext.TitleBar', {
 			docked: 'top',
 			ui: 'light',
 			title: Ext.util.Format.htmlEncode(this.questionObj.subject),
-			items: [this.backButton]
+			items: [this.backButton, this.exportButton]
 		});
 
 		// Create standard panel with framework support
@@ -163,14 +173,37 @@ Ext.define('ARSnova.view.FreetextAnswerPanel', {
 				'<span style="color:gray">{formattedTime}</span>',
 				'<tpl if="read === true || this.isStudent()">',
 					'<span style="padding-left:30px">{answerSubject:htmlEncode}</span>',
+					'<tpl if="this.isFixedAnswer() && successfulFreeTextAnswer === true">',
+						'<span style="float: right;" class="thm-green correct">',
+						Messages.CORRECT,
+						'</span>',
+					'</tpl>',
+					'<tpl if="this.isFixedAnswer() && successfulFreeTextAnswer === false">',
+						'<span style="float: right;" class="thm-red incorrect">',
+						Messages.WRONG,
+						'</span>',
+					'</tpl>',
 				'</tpl>',
 				'<tpl if="read === false && !this.isStudent()">',
 					'<span class="dangerLabel" style="padding-left:30px">{answerSubject:htmlEncode}</span>',
+					'<tpl if="this.isFixedAnswer() && successfulFreeTextAnswer === true">',
+						'<span style="float: right;" class="thm-green correct">',
+						Messages.CORRECT,
+						'</span>',
+					'</tpl>',
+					'<tpl if="this.isFixedAnswer() && successfulFreeTextAnswer === false">',
+						'<span style="float: right;" class="thm-red incorrect">',
+						Messages.WRONG,
+						'</span>',
+					'</tpl>',
 				'</tpl>',
 				'</div>',
 				{
 					isStudent: function () {
 						return ARSnova.app.isSessionOwner !== true;
+					},
+					isFixedAnswer: function () {
+						return self.questionObj.fixedAnswer;
 					}
 				}
 			),

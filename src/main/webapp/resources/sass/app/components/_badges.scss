@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@
 	.questionsBadgeIcon, .feedbackQuestionsBadgeIcon, .answersBadgeIcon,
 	.bluebadgeicon, .redbadgeicon, .unreadFeedbackQuestionsBadgeIcon,
 	.badgeicon, .greybadgeicon, .greenbadgeicon, .orangebadgeicon,
-	.bluebadgeiconfixed, .textbadgeicon {
+	.bluebadgeiconfixed, .textbadgeicon, .flashcardBadgeIcon {
 		font-size: 0.6em;
 		display: block;
 	}
@@ -91,7 +91,7 @@
 	}
 }
 
-.badgeicon, .questionsBadgeIcon, .feedbackQuestionsBadgeIcon, .unreadFeedbackQuestionsBadgeIcon, .answersBadgeIcon, .greybadgeicon, .bluebadgeicon, .redbadgeicon, .greenbadgeicon, .orangebadgeicon, .textbadgeicon {
+.badgeicon, .questionsBadgeIcon, .flashcardBadgeIcon, .feedbackQuestionsBadgeIcon, .unreadFeedbackQuestionsBadgeIcon, .answersBadgeIcon, .greybadgeicon, .bluebadgeicon, .redbadgeicon, .greenbadgeicon, .orangebadgeicon, .textbadgeicon {
 	font-weight: normal;
 	background: $brand-primary;
 	color: white;
@@ -116,6 +116,10 @@
 
 .answersBadgeIcon {
 	background: $badge-answers-color;
+}
+
+.flashcardBadgeIcon {
+	background: $badge-flashcards-color;
 }
 
 .redbadgecolor {

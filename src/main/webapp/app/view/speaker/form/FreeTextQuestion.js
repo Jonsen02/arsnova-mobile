@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,8 @@ Ext.define('ARSnova.view.speaker.form.FreeTextQuestion', {
 
 	requires: [
 		'Ext.field.Toggle',
-		'Ext.form.FieldSet'
+		'Ext.form.FieldSet',
+		'ARSnova.view.speaker.form.TextChecker'
 	],
 	config: {
 		scrollable: null,
@@ -30,10 +31,16 @@ Ext.define('ARSnova.view.speaker.form.FreeTextQuestion', {
 
 	imageQuestion: false,
 	textAnswerEnabled: true,
+	textChecker: null,
 
 	initialize: function () {
 		this.callParent(arguments);
 		var me = this;
+
+		this.textChecker = Ext.create('ARSnova.view.speaker.form.TextChecker', {
+			id: 'textChecker'
+		});
+		this.add(this.textChecker);
 
 		if (ARSnova.app.globalConfig.features.imageAnswer) {
 			this.expectAnswerText = Ext.create('ARSnova.view.MatrixButton', {
@@ -89,7 +96,10 @@ Ext.define('ARSnova.view.speaker.form.FreeTextQuestion', {
 				items: [this.imgUploadBtn]
 			});
 
-			this.add([answerFieldset, this.textAnswerFieldSet]);
+			this.add([
+				answerFieldset,
+				this.textAnswerFieldSet
+			]);
 		}
 	},
 
@@ -103,6 +113,7 @@ Ext.define('ARSnova.view.speaker.form.FreeTextQuestion', {
 		var result = {};
 		result.imageQuestion = this.imageQuestion;
 		result.textAnswerEnabled = this.textAnswerEnabled;
+		Ext.apply(result, this.textChecker.getValues());
 		return result;
 	}
 });

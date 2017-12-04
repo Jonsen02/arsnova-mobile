@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,6 +101,7 @@ Ext.define('ARSnova.view.user.QuestionPanel', {
 
 		if (newQuestion.questionObj) {
 			newQuestion.updateQuestionText();
+			this.toolbar.checkFlashcard(newQuestion);
 			this.toolbar.checkStatisticButtonIcon(newQuestion.questionObj);
 			this.toolbar.setTitle(Ext.util.Format.htmlEncode(newQuestion.getQuestionTypeMessage()));
 		}
@@ -120,6 +121,14 @@ Ext.define('ARSnova.view.user.QuestionPanel', {
 		this.setQuestionTitle(Messages.LECTURE_QUESTION_LONG);
 		this.setQuestionTitleShort(Messages.LECTURE_QUESTIONS);
 		this.setMode('lecture');
+	},
+
+	setFlashcardMode: function () {
+		this.setQuestionCountLoader(Ext.bind(ARSnova.app.questionModel.countFlashcards, ARSnova.app.questionModel));
+		this.setQuestionLoader(Ext.bind(ARSnova.app.questionModel.getFlashcardsForUser, ARSnova.app.questionModel));
+		this.setQuestionTitle(Messages.FLASHCARDS);
+		this.setQuestionTitleShort(Messages.FLASHCARD_SHORT);
+		this.setMode('flashcard');
 	},
 
 	getUnansweredSkillQuestions: function () {

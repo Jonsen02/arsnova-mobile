@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,10 @@ Ext.define('ARSnova.view.speaker.SpeakerUtilities', {
 		hideControlHandler: Ext.emptyFn,
 		cls: Ext.baseCSSPrefix + 'speaker-utils'
 	},
+
+	hideFeedbackOverlay: true,
+	hideInterposedOverlay: true,
+	hideCommentOverlay: true,
 
 	initialize: function () {
 		this.callParent(arguments);
@@ -76,6 +80,24 @@ Ext.define('ARSnova.view.speaker.SpeakerUtilities', {
 			iconCls: 'icon-question',
 			callFn: ARSnova.app.getController('Questions').listFeedbackQuestions,
 			handler: this.overlayButtonHandler,
+			hidden: true
+		});
+
+		this.commentOverlay = Ext.create('Ext.Button', {
+			ui: 'action',
+			docked: 'bottom',
+			cls: 'commentOverlay',
+			badgeText: '0',
+			badgeCls: 'badgeicon',
+			iconCls: 'icon-comment',
+			callFn: ARSnova.app.getController('Questions').listFeedbackQuestions,
+			handler: function () {
+				var activeItem = me.getParent().getActiveItem();
+				var questionObj = activeItem.questionObj;
+				if (questionObj && questionObj.questionType === 'slide') {
+					ARSnova.app.getController('Statistics').prepareStatistics(activeItem);
+				}
+			},
 			hidden: true
 		});
 
@@ -146,6 +168,7 @@ Ext.define('ARSnova.view.speaker.SpeakerUtilities', {
 		this.add([
 			this.interposedOverlay,
 			this.feedbackOverlay,
+			this.commentOverlay,
 			this.hideShowcaseControlButton,
 			this.projectorButton,
 			this.zoomButton
@@ -287,6 +310,20 @@ Ext.define('ARSnova.view.speaker.SpeakerUtilities', {
 		me.restoreZoomLevel();
 		me.setProjectorMode(me.getParent(), false);
 		setTimeout(this.config.callFn, 1000);
+	},
+
+	checkOverlayVisibility: function () {
+		var screenWidth = (window.innerWidth > 0) ? window.innerWidth : screen.width;
+
+		if (screenWidth >= 840) {
+			this.feedbackOverlay.setHidden(this.hideFeedbackOverlay);
+			this.interposedOverlay.setHidden(this.hideInterposedOverlay);
+			this.commentOverlay.setHidden(this.hideCommentOverlay);
+		} else {
+			this.feedbackOverlay.setHidden(true);
+			this.interposedOverlay.setHidden(true);
+			this.commentOverlay.setHidden(true);
+		}
 	},
 
 	getActivePanel: function () {

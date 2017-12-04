@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -154,9 +154,8 @@ Ext.define('ARSnova.view.speaker.QuestionStatisticChart', {
 			docked: 'top',
 			ui: 'light',
 			title: Ext.util.Format.htmlEncode(this.questionObj.subject),
-			items: [
-				this.backButton,
-				this.answerCounter, {
+			items: [this.backButton,
+                    this.answerCounter, {
 				xtype: 'button',
 				align: 'right',
 				iconCls: 'icon-check',
@@ -165,7 +164,16 @@ Ext.define('ARSnova.view.speaker.QuestionStatisticChart', {
 				handler: this.toggleCorrectHandler,
 				hidden: !hasCorrectAnswers() || this.questionObj.questionType === 'grid' ||
 					(ARSnova.app.userRole === ARSnova.app.USER_ROLE_STUDENT && !this.questionObj.showAnswer)
-			}]
+			}, {
+				xtype: 'button',
+				text: Messages.EXPORT_BUTTON_LABEL,
+				align: 'right',
+				handler: function () {
+					ARSnova.app.getController('QuestionExport').downloadQuestionAnswers(me.questionObj, me.questionStore);
+				},
+				hidden: (ARSnova.app.userRole === ARSnova.app.USER_ROLE_STUDENT || me.questionObj.questionType === 'grid')
+			}
+		]
 		});
 
 		this.piToolbar = Ext.create('Ext.Toolbar', {

@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,9 +74,25 @@
 			color: $icon-questionmark-color;
 
 			&:before {
-				font-size: 96px;
+				font-size: 80px;
 				top: -20px;
 				left: -8px;
+			}
+		}
+	}
+
+	&.commentOverlay {	
+		.x-button-icon {
+			color: $icon-comment-color;
+			text-shadow: 2px 2px 1px $icon-comment-border-color,
+				2px -2px 1px $icon-comment-border-color,
+				-2px 2px 1px $icon-comment-border-color,
+				-2px -2px 1px $icon-comment-border-color;
+		    margin-bottom: 30px;
+		    left: 1px;
+
+			&:before {
+				font-size: 76px;
 			}
 		}
 	}
@@ -106,7 +122,8 @@
 	}
 	
 	&.interposedOverlay,
-	&.feedbackOverlay {
+	&.feedbackOverlay,
+	&.commentOverlay {
 		width: 100px;
 		height: 100px;
 		display: flex;

@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,13 @@ Ext.define('ARSnova.view.QuestionPreviewBox', {
 			directionLock: true
 		},
 		hideOnMaskTap: true,
-		layout: 'vbox'
+		layout: 'vbox',
+		formatting: {
+			mdInTitle: false,
+			mdInBody: true,
+			mjInTitle: false,
+			mjInBody: true
+		}
 	},
 
 	initialize: function (args) {
@@ -131,8 +137,8 @@ Ext.define('ARSnova.view.QuestionPreviewBox', {
 	showPreview: function (title, content) {
 		ARSnova.app.innerScrollPanel = this;
 		ARSnova.app.activePreviewPanel = true;
-		this.titlePanel.setContent(title.replace(/\./, "\\."), false, true);
-		this.contentPanel.setContent(content, true, true);
+		this.titlePanel.setContent(title, this.getFormatting().mjInTitle, this.getFormatting().mdInTitle);
+		this.contentPanel.setContent(content, this.getFormatting().mjInBody, this.getFormatting().mdInBody);
 
 		this.add([
 			this.toolbar,

@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,16 @@ Ext.define("ARSnova.controller.QuestionExport", {
 	exportCsvFile: function (json) {
 		var csv = ARSnova.utils.CsvUtil.jsonToCsv(json);
 		this.saveFileOnFileSystem(csv, this.filename());
+	},
+
+	exportQuestions: function (controller) {
+		var me = this;
+		controller.getQuestions(sessionStorage.getItem('keyword'), {
+			success: function (response) {
+				var questions = Ext.decode(response.responseText);
+				me.parseJsonToCsv(questions);
+			}
+		});
 	},
 
 	getActualDate: function () {
@@ -74,9 +84,14 @@ Ext.define("ARSnova.controller.QuestionExport", {
 		question.answer7 = options[6];
 		question.answer8 = options[7];
 		if (questionTypeModel === 'yesno') {
-			correctAnswer = 'n';
-			if (questionModel.possibleAnswers[0].correct) {
+			correctAnswer = '';
+			if (!questionModel.possibleAnswers[0].correct &&
+				!questionModel.possibleAnswers[1].correct) {
+				correctAnswer = '';
+			} else if (questionModel.possibleAnswers[0].correct) {
 				correctAnswer = 'y';
+			} else if (questionModel.possibleAnswers[1].correct) {
+				correctAnswer = 'n';
 			}
 			question.correctAnswer = correctAnswer;
 		} else if (questionTypeModel === 'freetext') {
@@ -101,8 +116,7 @@ Ext.define("ARSnova.controller.QuestionExport", {
 		return questions;
 	},
 
-	saveFileOnFileSystem: function (csv, filename) {
-		var blob = new Blob([csv], {type: "application/csv;charset=utf-8"});
+	makeAndClickDownloadLink: function (blob, filename) {
 		var ua = window.navigator.userAgent;
 		var msie = ua.indexOf("MSIE ");
 
@@ -118,6 +132,15 @@ Ext.define("ARSnova.controller.QuestionExport", {
 			document.body.appendChild(a);
 			a.click();
 		}
+	},
+
+	saveFileOnFileSystem: function (csv, filename) {
+		var blob = new Blob([csv], {
+			type: Ext.browser.is.Safari ? "text/plain;charset=utf-8" :
+				"application/csv;charset=utf-8"
+		});
+
+		this.makeAndClickDownloadLink(blob, filename);
 		var hTP = ARSnova.app.mainTabPanel.tabPanel.homeTabPanel;
 		hTP.animateActiveItem(hTP.mySessionsPanel, {
 			type: 'slide',
@@ -126,10 +149,113 @@ Ext.define("ARSnova.controller.QuestionExport", {
 		});
 	},
 
+	saveClickQuestionOnFileSystem: function (questionObj, questionSubject) {
+		var rawJson = JSON.stringify(questionObj);
+		var blob = new Blob([rawJson], {type: "application/json;charset=utf-8"});
+		this.makeAndClickDownloadLink(blob, localStorage.getItem('shortName') + "_" + questionSubject + ".json");
+	},
+
 	parseJsonToCsv: function (records) {
 		var preparsedQuestion = this.preparseJsontoCsv(records);
 		var csv = ARSnova.utils.CsvUtil.jsonToCsv(preparsedQuestion);
 		this.saveFileOnFileSystem(csv, this.filename());
-	}
+	},
 
+	downloadQuestionAnswers: function (questionObj, answers) {
+		var header, rows = [];
+		if (questionObj.questionType === 'freetext') {
+			header = Messages.QUESTION_DATE + "," + Messages.QUESTIONS_CSV_EXPORT_ANSWERS_TIME + "," + Messages.QUESTIONS_CSV_EXPORT_ANSWERS_SUBJECT + "," + Messages.FREETEXT_DETAIL_ANSWER + ",Timestamp";
+			answers.each(function (record) {
+				rows.push([record.get('groupDate'), record.get('formattedTime'), record.get('answerSubject'), record.get('answerText'), record.get('timestamp')]);
+			});
+		} else {
+			header = Messages.ANSWERS + ","
+				+ Messages.FIRST_ROUND + " " + Messages.GRID_LABEL_RELATIVE + "," + Messages.FIRST_ROUND + " " + Messages.GRID_LABEL_ABSOLUTE + ","
+				+ Messages.SECOND_ROUND + " " + Messages.GRID_LABEL_RELATIVE + "," + Messages.SECOND_ROUND + " " + Messages.GRID_LABEL_ABSOLUTE;
+			answers.each(function (record) {
+				rows.push([record.get('text'), record.get('percent-round1'), record.get('value-round1'), record.get('percent-round2'), record.get('value-round2')]);
+			});
+		}
+
+		var csv = ARSnova.utils.CsvUtil.jsonToCsv(rows);
+		this.saveFileOnFileSystem(header + "\n" + csv, "answer-stats-" + this.getActualDate() + ".csv");
+	},
+
+	parseAnswerOptionsForClick: function (question) {
+		var clickAnswerOptions = [];
+		if (question.questionType === "freetext" && question.fixedAnswer) {
+			clickAnswerOptions.push({
+				hashtag: "ImportFromARSnova",
+				questionIndex: 0,
+				answerText: question.correctAnswer,
+				answerOptionNumber: 0,
+				configCaseSensitive: !question.ignoreCaseSensitive,
+				configTrimWhitespaces: !question.ignoreWhiteSpaces,
+				configUsePunctuation: !question.ignorePunctuation,
+				configUseKeywords: true,
+				type: "FreeTextAnswerOption"
+			});
+		} else if (question.questionType === "abcd") {
+			// slice off the "A", "B".. from the answer options
+			for (var j = 0; j < question.possibleAnswers.length; j++) {
+				clickAnswerOptions.push({
+					hashtag: "ImportFromARSnova",
+					questionIndex: 0,
+					answerText: question.possibleAnswers[j].text.slice(3),
+					answerOptionNumber: j,
+					isCorrect: question.possibleAnswers[j].correct,
+					type: "DefaultAnswerOption"
+				});
+			}
+		} else {
+			for (var i = 0; i < question.possibleAnswers.length; i++) {
+				clickAnswerOptions.push({
+					hashtag: "ImportFromARSnova",
+					questionIndex: 0,
+					answerText: question.possibleAnswers[i].text,
+					answerOptionNumber: i,
+					isCorrect: question.possibleAnswers[i].correct,
+					type: "DefaultAnswerOption"
+				});
+			}
+		}
+		return clickAnswerOptions;
+	},
+
+	exportQuestionToClick: function (question) {
+		var clickQuestion = {
+			hashtag: "ImportFromARSnova",
+			questionText: "## " + question.subject + " ##" + "\n" + question.text,
+			timer: 30,
+			startTime: 0,
+			questionIndex: 0,
+			displayAnswerText: false,
+			answerOptionList: this.parseAnswerOptionsForClick(question)
+		};
+		switch (question.questionType) {
+			case "yesno":
+				clickQuestion.type = "YesNoSingleChoiceQuestion";
+				break;
+			case "mc":
+				clickQuestion.type = "MultipleChoiceQuestion";
+				break;
+			case "sc":
+			case "abcd":
+				clickQuestion.type = "SingleChoiceQuestion";
+				break;
+			case "school":
+			case "vote":
+				clickQuestion.type = "SurveyQuestion";
+				break;
+			case "freetext":
+				clickQuestion.type = "FreeTextQuestion";
+				break;
+		}
+		var session = {
+			hashtag: "ImportFromARSnova",
+			questionList: [clickQuestion],
+			type: "DefaultQuestionGroup"
+		};
+		return session;
+	}
 });

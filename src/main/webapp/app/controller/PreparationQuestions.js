@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,8 @@ Ext.define("ARSnova.controller.PreparationQuestions", {
 		sTP.showcaseQuestionPanel.setController(this);
 		sTP.showcaseQuestionPanel.setPreparationMode();
 		sTP.audienceQuestionPanel.prepareQuestionList();
+		sTP.audienceQuestionPanel.setVariant('preparation');
+		sTP.audienceQuestionPanel.voteStatusButton.setPreparationQuestionsMode();
 		sTP.audienceQuestionPanel.questionStatusButton.setPreparationQuestionsMode();
 		sTP.audienceQuestionPanel.toolbar.getTitle().setTitle(Messages.PREPARATION_QUESTIONS);
 		sTP.audienceQuestionPanel.newQuestionButton.text = Messages.NEW_PREPARATION_QUESTION;

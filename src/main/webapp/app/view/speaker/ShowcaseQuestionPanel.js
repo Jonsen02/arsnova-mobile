@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,8 @@ Ext.define('ARSnova.view.speaker.ShowcaseQuestionPanel', {
 
 		controller: null,
 		questionTitleLong: Messages.LECTURE_QUESTION_LONG,
-		questionTitleShort: Messages.LECTURE_QUESTIONS
+		questionTitleShort: Messages.LECTURE_QUESTIONS,
+		mode: 'lecture'
 	},
 
 	updateClockTask: {
@@ -149,26 +150,38 @@ Ext.define('ARSnova.view.speaker.ShowcaseQuestionPanel', {
 
 	onPainted: function () {
 		this.updateEditButtons();
+		if (this.getActiveItem()) {
+			this.getActiveItem().setAnswerCount();
+		}
 	},
 
 	onItemChange: function (panel, newQuestion, oldQuestion) {
 		var screenWidth = (window.innerWidth > 0) ? window.innerWidth : screen.width;
+		var questionObj = newQuestion.questionObj;
 
 		if (oldQuestion && oldQuestion.questionObj && oldQuestion.countdownTimer) {
 			oldQuestion.countdownTimer.stop();
 		}
 
-		if (newQuestion.questionObj) {
+		if (questionObj) {
 			var title = screenWidth >= 520 ? newQuestion.getQuestionTypeMessage() : '';
+			var isFlashcard = questionObj.questionType === 'flashcard';
 
-			if (panel.speakerUtilities.isZoomElementActive()) {
+			if (panel.speakerUtilities.isZoomElementActive() && !isFlashcard) {
 				newQuestion.setPadding('0 0 50 0');
 			}
 
+			if (questionObj.questionType !== 'slide') {
+				panel.speakerUtilities.commentOverlay.setHidden(true);
+			}
+
+			panel.getActiveItem().setAnswerCount();
 			panel.updateControlButtonHiddenState();
+			panel.toolbar.checkFlashcard(newQuestion);
 			panel.speakerUtilities.setHidden(screenWidth < 700);
 			panel.speakerUtilities.checkQuestionType(newQuestion);
-			panel.toolbar.checkStatisticButtonIcon(newQuestion.questionObj);
+			panel.toolbar.checkStatisticButtonIcon(questionObj);
+			panel.speakerUtilities.hideShowcaseControlButton.setHidden(isFlashcard);
 			panel.setProjectorMode(this, ARSnova.app.projectorModeActive && screenWidth > 700, true);
 			panel.toolbar.setTitle(Ext.util.Format.htmlEncode(title));
 			newQuestion.setZoomLevel(ARSnova.app.globalZoomLevel);
@@ -198,6 +211,10 @@ Ext.define('ARSnova.view.speaker.ShowcaseQuestionPanel', {
 		}
 
 		sTP.showcaseQuestionPanel.speakerUtilities.setProjectorMode(showcasePanel, activate, noFullscreen);
+
+		if (hasActiveItem && activePanel.questionObj.questionType === 'flashcard') {
+			setTimeout(function () { activePanel.resizeFlashcardContainer(); }, 750);
+		}
 	},
 
 	updateControlButtonHiddenState: function (panel) {
@@ -344,11 +361,20 @@ Ext.define('ARSnova.view.speaker.ShowcaseQuestionPanel', {
 		this.setController(ARSnova.app.getController('Questions'));
 		this.setQuestionTitleLong(Messages.LECTURE_QUESTION_LONG);
 		this.setQuestionTitleShort(Messages.LECTURE_QUESTIONS);
+		this.setMode('lecture');
 	},
 
 	setPreparationMode: function () {
 		this.setController(ARSnova.app.getController('PreparationQuestions'));
 		this.setQuestionTitleLong(Messages.PREPARATION_QUESTION_LONG);
 		this.setQuestionTitleShort(Messages.PREPARATION_QUESTION_SHORT);
+		this.setMode('preparation');
+	},
+
+	setFlashcardMode: function () {
+		this.setController(ARSnova.app.getController('FlashcardQuestions'));
+		this.setQuestionTitleLong(Messages.FLASHCARD);
+		this.setQuestionTitleShort(Messages.FLASHCARD_SHORT);
+		this.setMode('flashcard');
 	}
 });

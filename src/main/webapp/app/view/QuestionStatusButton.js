@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,11 @@ Ext.define('ARSnova.view.QuestionStatusButton', {
 		},
 		slideWording: {
 			release: Messages.RELEASE_SLIDE
+		},
+		flashcardWording: {
+			release: Messages.RELEASE_FLASHCARD,
+			confirm: Messages.CONFIRM_CLOSE_FLASHCARD,
+			confirmMessage: Messages.CONFIRM_CLOSE_FLASHCARD_MESSAGE
 		}
 	},
 
@@ -43,8 +48,16 @@ Ext.define('ARSnova.view.QuestionStatusButton', {
 		this.parentPanel = args.parentPanel;
 
 		this.isOpen = this.questionObj && this.questionObj.active;
-		var label = this.questionObj && this.questionObj.questionType === 'slide' ?
-			this.getSlideWording().release : this.getWording().release;
+		var label = this.getWording().release;
+
+		if (this.questionObj) {
+			if (this.questionObj.questionType === 'slide') {
+				label = this.getSlideWording().release;
+			} else if (this.questionObj.questionType === 'flashcard') {
+				label = this.getFlashcardWording().release;
+				this.setWording(this.getFlashcardWording());
+			}
+		}
 
 		this.button = Ext.create('ARSnova.view.MatrixButton', {
 			buttonConfig: 'togglefield',
@@ -69,17 +82,18 @@ Ext.define('ARSnova.view.QuestionStatusButton', {
 
 	changeStatus: function () {
 		var me = this;
-		var id = this.questionObj._id;
+		var question = this.questionObj;
 
 		if (this.isOpen) {
 			Ext.Msg.confirm(this.getWording().confirm, this.getWording().confirmMessage, function (buttonId) {
 				if (buttonId !== "no") {
 					/* close this question */
 					ARSnova.app.getController('Questions').setActive({
-						questionId: id,
+						questionId: question._id,
 						active: 0,
 						statusButton: me
 					});
+					question.active = false;
 				} else {
 					me.button.setToggleFieldValue(true);
 				}
@@ -87,10 +101,11 @@ Ext.define('ARSnova.view.QuestionStatusButton', {
 		} else {
 			/* open this question */
 			ARSnova.app.getController('Questions').setActive({
-				questionId: id,
+				questionId: question._id,
 				active: 1,
 				statusButton: me
 			});
+			question.active = true;
 		}
 	},
 

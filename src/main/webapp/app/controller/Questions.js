@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ Ext.define("ARSnova.controller.Questions", {
 		sTP.showcaseQuestionPanel.setController(this);
 		sTP.showcaseQuestionPanel.setLectureMode();
 		sTP.audienceQuestionPanel.prepareQuestionList();
+		sTP.audienceQuestionPanel.setVariant('lecture');
 		sTP.audienceQuestionPanel.voteStatusButton.setLecturerQuestionsMode();
 		sTP.audienceQuestionPanel.questionStatusButton.setLecturerQuestionsMode();
 		sTP.audienceQuestionPanel.toolbar.getTitle().setTitle(Messages.LECTURE_QUESTIONS);
@@ -125,6 +126,13 @@ Ext.define("ARSnova.controller.Questions", {
 			possibleAnswers: options.possibleAnswers,
 			noCorrect: options.noCorrect,
 			abstention: options.abstention,
+			fixedAnswer: options.fixedAnswer,
+			strictMode: options.strictMode,
+			rating: options.rating,
+			correctAnswer: options.correctAnswer,
+			ignoreCaseSensitive: options.ignoreCaseSensitive,
+			ignoreWhitespaces: options.ignoreWhitespaces,
+			ignorePunctuation: options.ignorePunctuation,
 			gridSize: options.gridSize,
 			offsetX: options.offsetX,
 			offsetY: options.offsetY,
@@ -167,6 +175,7 @@ Ext.define("ARSnova.controller.Questions", {
 		var subjectError = false;
 		var checkedError = false;
 		var questionError = false;
+		var freetextError = false;
 
 		var validation = question.validate();
 		if (!validation.isValid()) {
@@ -240,6 +249,11 @@ Ext.define("ARSnova.controller.Questions", {
 					gridError = true;
 				}
 				break;
+			case 'freetext':
+				if (question.data.fixedAnswer && question.data.correctAnswer.trim() === "") {
+					freetextError = true;
+				}
+				break;
 		}
 
 		if (error) {
@@ -256,6 +270,9 @@ Ext.define("ARSnova.controller.Questions", {
 			}
 			if (answersError && question.get('questionType') === 'flashcard') {
 				message += '<li>' + Messages.MISSING_FLASHCARD + '</li>';
+			}
+			if (freetextError) {
+				message += '<li>' + Messages.MISSING_FREETEXT_ANSWER + '</li>';
 			} else if (answersError) {
 				message += '<li>' + Messages.MISSING_ANSWERS + '</li>';
 			}
@@ -430,19 +447,24 @@ Ext.define("ARSnova.controller.Questions", {
 		var mainTabPanel = ARSnova.app.mainTabPanel;
 		var tP = mainTabPanel.tabPanel;
 		var panel = tP.userQuestionsPanel || tP.speakerTabPanel;
+		var hideOverlay = true;
 
 		if (tP.getActiveItem() === tP.speakerTabPanel) {
 			var showcasePanel = panel.showcaseQuestionPanel;
 
 			if (tP.speakerTabPanel.getActiveItem() === showcasePanel) {
 				if (showcasePanel.getActiveItem().getItemId() === id) {
+					showcasePanel.speakerUtilities.hideCommentOverlay = true;
 					if (showcasePanel.getActiveItem().questionObj.questionType === 'slide') {
 						showcasePanel.toolbar.setAnswerCounter(answerCount, Messages.COMMENT);
+						showcasePanel.speakerUtilities.commentOverlay.setBadgeText(answerCount);
+						showcasePanel.speakerUtitlites.hideCommentOverlay = !parseInt(answerCount);
 					} else if (!answerCount && abstentionCount) {
 						showcasePanel.toolbar.setAnswerCounter(abstentionCount, Messages.ABSTENTION);
 					} else {
 						showcasePanel.toolbar.updateAnswerCounter(answerCount);
 					}
+					showcasePanel.speakerUtilities.checkOverlayVisibility();
 				}
 			}
 		}

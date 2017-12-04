@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,6 +73,9 @@
 @include icon("icon-warning" , "\f071", "arsnova");
 @include icon("icon-pencil" , "\f045", "arsnova");
 @include icon("icon-comment" , "\f075", "arsnova");
+@include icon("icon-flashcard-front", "\f24a", "arsnova");
+@include icon("icon-flashcard-back", "\f249", "arsnova");
+@include icon("icon-flip", "\ea2e", "arsnova");
 
 @include icon("icon-undo", "\f0e2", "arsnova");
 @include icon("icon-drag", "\f0dc", "arsnova");
@@ -130,6 +133,10 @@
 .icon-logo-nova {
 	color: $logo-nova-color;
 	content: "n";
+}
+
+.icon-flip {
+	font-size: 0.75em;
 }
 
 .voteIcons {
@@ -394,6 +401,11 @@
 		color: $icon-release-timer-color;
 		font-size: 52px !important;
 		margin: 14px 0 0 17px !important;
+	}
+
+	.icon-flashcard-back,
+	.icon-flashcard-front {
+		margin: 16px 0 0 16px !important;
 	}
 }
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -89,6 +89,7 @@ Ext.define('ARSnova.model.Session', {
 		sessionLeave: "arsnova/session/leave",
 		learningProgressOptions: "arsnova/session/learningprogress/options",
 		learningProgressChange: "arsnova/session/learningprogress/change",
+		flipFlashcards: "arsnova/session/flashcards/flip",
 		featureChange: "arsnova/session/features/change"
 	},
 
@@ -103,6 +104,11 @@ Ext.define('ARSnova.model.Session', {
 
 		ARSnova.app.socket.on(ARSnova.app.socket.events.learningProgressChange, function () {
 			this.fireEvent(this.events.learningProgressChange);
+		}, this);
+
+		ARSnova.app.socket.on(ARSnova.app.socket.events.flipFlashcards, function (flip) {
+			ARSnova.app.getController('FlashcardQuestions').flipFlashcards(flip);
+			this.fireEvent(this.events.flipFlashcards, flip);
 		}, this);
 
 		ARSnova.app.socket.on(ARSnova.app.socket.events.featureChange, function (features) {
@@ -173,6 +179,10 @@ Ext.define('ARSnova.model.Session', {
 
 	lockFeedbackInput: function (lock, callbacks) {
 		return this.getProxy().lockFeedbackInput(sessionStorage.getItem("keyword"), lock, callbacks);
+	},
+
+	flipFlashcards: function (flip, callbacks) {
+		return this.getProxy().flipFlashcards(sessionStorage.getItem("keyword"), flip, callbacks);
 	},
 
 	getMyLearningProgress: function (sessionKeyword, callbacks) {

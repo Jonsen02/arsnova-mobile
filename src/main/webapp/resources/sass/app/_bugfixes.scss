@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,15 +70,16 @@ body.x-firefox {
 	/* Override bad CSS code of Sencha Touch which breaks layout in Firefox 49+.
 	 * See https://hacks.mozilla.org/2016/09/firefox-49-fixes-sites-designed-with-webkit-in-mind-and-more/
 	 */
-	.x-button, .x-layout-box {
-		display: flex;
-	}
-
+	.x-button,
+	.x-layout-box,
 	.x-layout-box > .x-layout-box-item {
 		display: flex !important;
 	}
+}
 
-	.x-stretched.x-container > .x-inner, .x-stretched.x-container > .x-body, .x-stretched.x-container > .x-body > .x-inner {
-		display: flex !important;
+body.x-chrome {
+	/* Workaround for issue with invisible buttons in Chrome 57+. */
+	.x-button {
+		overflow: visible;
 	}
 }

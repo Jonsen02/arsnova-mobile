@@ -1,7 +1,7 @@
 /*
  * This file is part of ARSnova Mobile.
  * Copyright (C) 2011-2012 Christian Thomas Weber
- * Copyright (C) 2012-2016 The ARSnova Team
+ * Copyright (C) 2012-2017 The ARSnova Team
  *
  * ARSnova Mobile is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,9 +64,18 @@ Ext.define("ARSnova.controller.Auth", {
 				"lecturer" === role ? ARSnova.app.USER_ROLE_SPEAKER : ARSnova.app.USER_ROLE_STUDENT
 			);
 			sessionStorage.setItem('keyword', sessionkey);
-			if (!ARSnova.app.checkPreviousLogin()) {
-				me.login();
-			}
+			me.checkLogin().then(
+				function () {
+					if (!ARSnova.app.checkPreviousLogin()) {
+						console.debug("QR: User is authenticated but storage is not initialized.");
+						me.login();
+					}
+				},
+				function () {
+					console.debug("QR: User is not yet authenticated.");
+					me.login();
+				}
+			);
 
 			window.location = window.location.pathname + "#";
 		});
@@ -80,15 +89,11 @@ Ext.define("ARSnova.controller.Auth", {
 			var enabledServices;
 			if (ARSnova.app.userRole === ARSnova.app.USER_ROLE_STUDENT) {
 				enabledServices = services.filter(function (service) {
-					return ['ldap', 'cas'].indexOf(service.id) !== -1;
+					return service.allowedRoles.indexOf('student') !== -1;
 				});
-				var guestLogin = services.filter(function (service) {
-					return service.id === 'guest';
-				});
-				var guest;
 
-				if (enabledServices.length === 0 && guestLogin.length > 0) {
-					this.login({service: guestLogin[0]});
+				if (enabledServices.length === 1) {
+					this.login({service: enabledServices[0]});
 				} else {
 					ARSnova.app.mainTabPanel.tabPanel.loginPanel.addButtons("student");
 					ARSnova.app.mainTabPanel.tabPanel.animateActiveItem(
@@ -97,7 +102,7 @@ Ext.define("ARSnova.controller.Auth", {
 				}
 			} else {
 				enabledServices = services.filter(function (service) {
-					return service.allowLecturer;
+					return service.allowedRoles.indexOf('speaker') !== -1;
 				});
 
 				if (enabledServices.length === 1) {
