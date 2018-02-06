@@ -63,7 +63,7 @@
 
 				/* rolePanel */
 				BLOG: "Blog",
-				STUDENT: "Student/in",
+				STUDENT: "JG - LeiterInnen",
 				SPEAKER: "Dozent/in",
 				TITLE_ROLE: "Feedback & Interaktion",
 				/* loginPanel */
@@ -83,7 +83,7 @@
 				GO: "Session betreten",
 				LOAD_MORE: "Weitere laden",
 				YOUR_COURSE_SESSIONS: "Auswählbare Moodle-Kurse",
-				LAST_VISITED_SESSIONS_SPEAKER: "Als Student/in besuchte Sessions",
+				LAST_VISITED_SESSIONS_SPEAKER: "Als JG - LeiterInn besuchte Sessions",
 				LAST_VISITED_SESSIONS_STUDENT: "Besuchte Sessions",
 				LEGEND: "Bedeutung der Farben",
 				OPEN_SESSION: "Offene Session",
