@@ -63,15 +63,15 @@
 
 				/* rolePanel */
 				BLOG: "Blog",
-				STUDENT: "Student/in",
-				SPEAKER: "Dozent/in",
+				STUDENT: "JG-Leiter/in",
+				SPEAKER: "Referent/in",
 				TITLE_ROLE: "Feedback & Interaktion",
 				/* loginPanel */
 				LOGIN: "Login",
 				GUEST: "Gast",
 				CHANGE_ROLE: "Rolle wechseln",
 				NO_GUEST_SPEAKER: "Hinweis: Um eine Session anzulegen, müssen Sie sich anmelden.",
-				CONFIRM_GUEST_SPEAKER: "Der Gastzugang in der Rolle Dozent/in ist nur zum Kennenlernen von ARSnova geeignet. Möchten Sie sich trotzdem als Gast anmelden?",
+				CONFIRM_GUEST_SPEAKER: "Der Gastzugang in der Rolle Referent/in ist nur zum Kennenlernen von ARSnova geeignet. Möchten Sie sich trotzdem als Gast anmelden?",
 				GUEST_LOGIN: "Anmeldung",
 				BACK_TO_ROLEPANEL: "Rollen",
 
@@ -83,7 +83,7 @@
 				GO: "Session betreten",
 				LOAD_MORE: "Weitere laden",
 				YOUR_COURSE_SESSIONS: "Auswählbare Moodle-Kurse",
-				LAST_VISITED_SESSIONS_SPEAKER: "Als Student/in besuchte Sessions",
+				LAST_VISITED_SESSIONS_SPEAKER: "Als JG -Leiter/in besuchte Sessions",
 				LAST_VISITED_SESSIONS_STUDENT: "Besuchte Sessions",
 				LEGEND: "Bedeutung der Farben",
 				OPEN_SESSION: "Offene Session",
